@@ -1,0 +1,118 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id      Int    @id @default(autoincrement())
+  name    String 
+  email String @unique
+  noWa   String @unique
+  password String
+  role String @default("user")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  Notification Notification[]
+}
+
+model Equipments {
+  id String @id @default(uuid())
+  name String 
+  category String
+  stock Int @default(1)  // Jumlah stok/unit tersedia
+  imageUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  EquipmentEvent EquipmentEvent[]
+  DamagedEquipment DamagedEquipment[]
+}
+
+model Events {
+  id String @id @default(uuid())
+  title String
+  description String
+  date DateTime
+  location String
+  status EventStatus @default(upcoming)  // Status event
+  reportGenerated Boolean @default(false)  // Apakah laporan sudah dibuat
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  EquipmentEvent EquipmentEvent[]
+}
+
+model EquipmentEvent {
+  id           String   @id @default(cuid())
+  equipmentId  String
+  eventId      String
+  quantity     Int      @default(1)  // Jumlah equipment yang dipinjam untuk event ini
+  equipment    Equipments @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  event        Events     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([equipmentId, eventId])  // Prevent duplicate equipment in same event
+}
+
+model DamagedEquipment {
+  id           String   @id @default(cuid())
+  equipmentId  String
+  quantity     Int      @default(1)  // Jumlah unit yang rusak
+  description  String?  // Deskripsi kerusakan
+  repairStatus RepairStatus @default(pending)
+  reportedAt   DateTime @default(now())
+  repairedAt   DateTime?
+  
+  equipment    Equipments @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+
+  @@index([equipmentId])
+  @@index([repairStatus])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    Int
+  title     String
+  message   String
+  type      NotificationType @default(info)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  
+  user      Users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+}
+
+enum RepairStatus {
+  pending      // Belum diperbaiki
+  in_progress  // Sedang diperbaiki
+  completed    // Sudah diperbaiki
+}
+
+enum EventStatus {
+  upcoming     // Event yang akan datang
+  ongoing      // Event sedang berlangsung
+  completed    // Event selesai
+}
+
+enum NotificationType {
+  info
+  success
+  warning
+  error
+  equipment
+  event
+}

@@ -1,7 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    remotePatterns: [
+      {
+        hostname: "a-ipower.com",
+        protocol: "https",
+      },
+    ],
+  },
 };
 
 export default nextConfig;
